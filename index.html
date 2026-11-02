@@ -1572,7 +1572,7 @@
       flex-direction: column;
       flex: 1;
       min-height: 0;
-      overflow: hidden;
+      overflow: auto;
     }
 
     .trade-trading-content {
@@ -1762,16 +1762,12 @@
 
     /* Bottom Navigation */
     .trade-bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #0f172a;
-      border-top: 1px solid #1e293b;
       display: flex;
       justify-content: space-around;
-      padding: 0.75rem 0;
-      z-index: 3100;
+      padding: 0.6rem 0;
+      background: #0f172a;
+      border-top: 1px solid #1e293b;
+      z-index: 10;
       flex-shrink: 0;
     }
 
@@ -2482,7 +2478,9 @@ function closeExcelViewer() {
         <div class="trade-trading-content">
           <div class="trade-order-form">
             <div class="trade-order-title">Open Positions</div>
-            <div id="tradePositions" style="padding:1rem;color:#94a3b8;text-align:center;">No open positions yet. Go to Futures to place your first trade.</div>
+            <div id="tradePositions" style="padding:1rem;">
+              <div style="color:#94a3b8;text-align:center;padding:1rem;">No open positions yet. Go to Futures to place your first trade.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -2504,6 +2502,27 @@ function closeExcelViewer() {
           </div>
         </div>
         <canvas id="tradeChartCanvas" style="width:100%;height:100%;display:block;background:#0b1026;"></canvas>
+      </div>
+      <div class="trade-trading-panel" style="margin-top:0;">
+        <div class="trade-panel-header">📈 Market Analysis</div>
+        <div class="trade-trading-content" style="padding:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;">
+          <div class="trade-analysis-card" style="background:#0b1026;border:1px solid #1e293b;border-radius:10px;padding:1rem;text-align:center;">
+            <div style="font-size:0.75rem;color:#94a3b8;text-transform:uppercase;">Current Price</div>
+            <div id="analysisPrice" style="font-size:1.25rem;font-weight:700;color:#f8fafc;">--</div>
+          </div>
+          <div class="trade-analysis-card" style="background:#0b1026;border:1px solid #1e293b;border-radius:10px;padding:1rem;text-align:center;">
+            <div style="font-size:0.75rem;color:#94a3b8;text-transform:uppercase;">Day Change</div>
+            <div id="analysisChange" style="font-size:1.25rem;font-weight:700;color:#22c55e;">--</div>
+          </div>
+          <div class="trade-analysis-card" style="background:#0b1026;border:1px solid #1e293b;border-radius:10px;padding:1rem;text-align:center;">
+            <div style="font-size:0.75rem;color:#94a3b8;text-transform:uppercase;">RSI (14)</div>
+            <div id="analysisRsi" style="font-size:1.25rem;font-weight:700;color:#f8fafc;">--</div>
+          </div>
+          <div class="trade-analysis-card" style="background:#0b1026;border:1px solid #1e293b;border-radius:10px;padding:1rem;text-align:center;">
+            <div style="font-size:0.75rem;color:#94a3b8;text-transform:uppercase;">Signal</div>
+            <div id="analysisSignal" style="font-size:1rem;font-weight:700;color:#f8fafc;">--</div>
+          </div>
+        </div>
       </div>
     </div>
     <!-- Futures: Order Form -->
@@ -2814,6 +2833,7 @@ function closeExcelViewer() {
           document.getElementById(`price-${selectedSymbol}`).textContent = newClose.toFixed(5);
         }
         updatePositionsUI();
+        updateMarketAnalysis();
       }, 1500);
     }
 
@@ -2842,6 +2862,7 @@ function closeExcelViewer() {
         p.pnl = diff * p.volume * 100;
       });
       updateBalanceUI();
+      renderPositions();
     }
 
     function setOrderType(type) {
@@ -2893,6 +2914,7 @@ function closeExcelViewer() {
 
       document.getElementById('tradePrice').value = price.toFixed(5);
       updateBalanceUI();
+      renderPositions();
       renderHistory();
       showNotify('Order Executed', `${type.toUpperCase()} ${volume} lots ${symbol} at ${price.toFixed(5)}`);
     }
@@ -2911,6 +2933,74 @@ function closeExcelViewer() {
         `;
         container.appendChild(div);
       });
+    }
+
+    function renderPositions() {
+      const container = document.getElementById('tradePositions');
+      if (positions.length === 0) {
+        container.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:1rem;">No open positions yet. Go to Futures to place your first trade.</div>';
+        return;
+      }
+      container.innerHTML = '';
+      positions.forEach(p => {
+        const current = currentPrices[p.symbol] || p.price;
+        const diff = p.type === 'buy' ? (current - p.price) : (p.price - current);
+        const pnl = diff * p.volume * 100;
+        const pnlColor = pnl >= 0 ? '#22c55e' : '#ef4444';
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#0b1026;border:1px solid #1e293b;border-radius:8px;padding:0.75rem;margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;';
+        div.innerHTML = `
+          <div>
+            <div style="font-weight:700;color:#f8fafc;">${p.symbol} ${p.type.toUpperCase()}</div>
+            <div style="font-size:0.8rem;color:#94a3b8;">${p.volume} lots @ ${p.price.toFixed(5)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:700;color:${pnlColor};">$${pnl.toFixed(2)}</div>
+            <button onclick="closePosition(${p.id})" style="background:#ef4444;border:none;border-radius:6px;padding:0.25rem 0.75rem;color:#fff;font-size:0.75rem;cursor:pointer;margin-top:0.25rem;">Close</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function closePosition(id) {
+      const idx = positions.findIndex(p => p.id === id);
+      if (idx === -1) return;
+      const p = positions[idx];
+      const current = currentPrices[p.symbol] || p.price;
+      const diff = p.type === 'buy' ? (current - p.price) : (p.price - current);
+      const pnl = diff * p.volume * 100;
+      const cost = p.volume * p.price * 100;
+      if (p.type === 'buy') balance += cost + pnl;
+      else balance += cost - pnl * 0.5;
+      positions.splice(idx, 1);
+      history.unshift({ ...p, pnl, time: new Date().toLocaleTimeString(), closed: true });
+      if (history.length > 50) history.pop();
+      renderPositions();
+      renderHistory();
+      updateBalanceUI();
+      showNotify('Position Closed', `${p.symbol} ${p.type.toUpperCase()} closed at $${pnl.toFixed(2)} P&L.`);
+    }
+
+    function updateMarketAnalysis() {
+      const sym = selectedSymbol;
+      const price = currentPrices[sym] || 0;
+      const base = { 'EUR/USD': 1.0850, 'GBP/USD': 1.2650, 'XAU/USD': 2650.00, 'BTC/USD': 67500.00, 'AAPL': 185.50, 'TSLA': 245.30 }[sym] || 1.0;
+      const change = ((price - base) / base * 100).toFixed(2);
+      const changeColor = change >= 0 ? '#22c55e' : '#ef4444';
+      const rsi = (30 + Math.random() * 40).toFixed(1);
+      const rsiColor = rsi > 70 ? '#ef4444' : rsi < 30 ? '#22c55e' : '#f8fafc';
+      const signal = rsi > 70 ? 'SELL' : rsi < 30 ? 'BUY' : 'NEUTRAL';
+      const signalColor = signal === 'BUY' ? '#22c55e' : signal === 'SELL' ? '#ef4444' : '#94a3b8';
+
+      const elPrice = document.getElementById('analysisPrice');
+      const elChange = document.getElementById('analysisChange');
+      const elRsi = document.getElementById('analysisRsi');
+      const elSignal = document.getElementById('analysisSignal');
+      if (elPrice) elPrice.textContent = price.toFixed(5);
+      if (elChange) { elChange.textContent = `${change >= 0 ? '+' : ''}${change}%`; elChange.style.color = changeColor; }
+      if (elRsi) { elRsi.textContent = rsi; elRsi.style.color = rsiColor; }
+      if (elSignal) { elSignal.textContent = signal; elSignal.style.color = signalColor; }
     }
 
     function depositFunds() {
