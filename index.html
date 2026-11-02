@@ -1567,8 +1567,17 @@
       flex-shrink: 0;
     }
 
+    .trade-main {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     .trade-trading-content {
       padding: 1rem;
+      overflow-y: auto;
     }
 
     .trade-order-form {
@@ -1838,10 +1847,14 @@
     }
     .trade-tab-panel.active {
       display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
     }
     .trade-tab-panel > * {
       flex-shrink: 0;
     }
+  </style>
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
