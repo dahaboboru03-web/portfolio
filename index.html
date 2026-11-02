@@ -1316,6 +1316,51 @@
       padding: 1rem;
     }
 
+    /* Full-screen trade mode (opened in new tab via ?trade) */
+    body.trade-mode {
+      overflow: hidden;
+      background: #0b1026;
+    }
+    body.trade-mode > *:not(#tradeModal),
+    body.trade-mode header,
+    body.trade-mode nav,
+    body.trade-mode footer,
+    body.trade-mode section:not(#trade-modal-wrap) {
+      display: none !important;
+    }
+    body.trade-mode #trade-modal-wrap {
+      display: flex !important;
+      position: fixed !important;
+      inset: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #0b1026 !important;
+      backdrop-filter: none !important;
+      align-items: stretch !important;
+      justify-content: stretch !important;
+      z-index: 3000 !important;
+    }
+    body.trade-mode #tradeModal {
+      display: flex !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-height: none !important;
+      border-radius: 0 !important;
+      border: none !important;
+      background: #0b1026 !important;
+      box-shadow: none !important;
+    }
+    body.trade-mode .trade-window {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-height: none !important;
+      border-radius: 0 !important;
+      border: none !important;
+      background: #0b1026 !important;
+      box-shadow: none !important;
+    }
+    body.trade-mode .trade-modal-overlay { display: none !important; }
+
     .trade-modal-overlay {
       position: absolute;
       inset: 0;
@@ -1462,6 +1507,28 @@
       grid-template-columns: 340px 1fr 320px;
       grid-template-rows: 1fr 45px;
       gap: 0;
+      min-height: 0;
+    }
+
+    .trade-watchlist,
+    .trade-chart-area,
+    .trade-trading-panel,
+    .trade-history {
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .trade-watchlist-items,
+    .trade-trading-content,
+    .trade-history-items {
+      overflow-y: auto;
+    }
+
+    .trade-history-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.5rem;
+      align-content: start;
     }
 
     .trade-watchlist {
@@ -2374,7 +2441,8 @@ function closeExcelViewer() {
   document.getElementById('excel-viewer').style.display = 'none';
 }
   </script>
-  <div class="trade-modal" id="tradeModal">
+  <div id="trade-modal-wrap">
+    <div class="trade-modal" id="tradeModal">
     <div class="trade-modal-overlay" onclick="closeTrading()"></div>
     <div class="trade-window">
       <div class="trade-header">
@@ -2456,6 +2524,7 @@ function closeExcelViewer() {
       </div>
     </div>
   </div>
+  </div>
   <div class="trade-notification" id="tradeNotify">
     <div class="trade-notify-title" id="tradeNotifyTitle">Trade Executed</div>
     <div class="trade-notify-body" id="tradeNotifyBody">Your order has been placed.</div>
@@ -2468,11 +2537,19 @@ function closeExcelViewer() {
     let history = [];
     let currentPrices = {};
 
-    function openTrading() {
+    // Trade mode: opened in a new tab via ?trade
+    if (new URLSearchParams(window.location.search).has('trade')) {
+      document.body.classList.add('trade-mode');
       document.getElementById('tradeModal').style.display = 'flex';
       initWatchlist();
       updateBalanceUI();
       startPriceTicker();
+      // Close button returns to portfolio tab
+      document.querySelector('.trade-close').onclick = () => window.close();
+    }
+
+    function openTrading() {
+      window.open(window.location.pathname + '?trade', '_blank');
     }
 
     function closeTrading() {
