@@ -1851,6 +1851,8 @@
     }
   </style>
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 </head>
 <body>
 
@@ -2472,8 +2474,16 @@ function closeExcelViewer() {
           <div class="trade-watchlist-items" id="tradeWatchlist"></div>
         </div>
         <div class="trade-chart-area">
-          <div class="trade-chart-canvas" id="tradeChart"></div>
-          <div style="position:absolute;bottom:1rem;left:1rem;color:#94a3b8;font-size:0.8rem;">Live Chart — Nelson Trade</div>
+          <div class="trade-chart-controls" style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:#111827;border-bottom:1px solid #1e293b;">
+            <div style="font-weight:700;color:#f8fafc;font-size:0.9rem;">EUR/USD — Live Chart</div>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="trade-chart-btn" onclick="setTimeframe('1m')" style="padding:0.375rem 0.75rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-size:0.75rem;cursor:pointer;">1m</button>
+              <button class="trade-chart-btn" onclick="setTimeframe('5m')" style="padding:0.375rem 0.75rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-size:0.75rem;cursor:pointer;">5m</button>
+              <button class="trade-chart-btn" onclick="setTimeframe('15m')" style="padding:0.375rem 0.75rem;background:#334155;border:1px solid #3b82f6;border-radius:6px;color:#3b82f6;font-size:0.75rem;cursor:pointer;">15m</button>
+              <button class="trade-chart-btn" onclick="setTimeframe('1h')" style="padding:0.375rem 0.75rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-size:0.75rem;cursor:pointer;">1h</button>
+            </div>
+          </div>
+          <canvas id="tradeChartCanvas" style="width:100%;height:100%;display:block;background:#0b1026;"></canvas>
         </div>
         <div class="trade-trading-panel">
           <div class="trade-panel-header">💱 New Order</div>
@@ -2496,13 +2506,29 @@ function closeExcelViewer() {
                 </select>
               </div>
               <div class="trade-form-group">
+                <label class="trade-form-label">Order Type</label>
+                <select class="trade-form-input" id="tradeOrderType">
+                  <option value="market">Market Order (Instant)</option>
+                  <option value="limit">Limit Order (Set Price)</option>
+                </select>
+              </div>
+              <div class="trade-form-group">
                 <label class="trade-form-label">Volume (lots)</label>
                 <input class="trade-form-input" id="tradeVolume" type="number" value="0.1" min="0.01" step="0.01">
               </div>
-              <div class="trade-form-group">
+              <div class="trade-form-group" id="tradePriceGroup">
                 <label class="trade-form-label">Price</label>
-                <input class="trade-form-input" id="tradePrice" type="number" step="0.00001" readonly>
+                <input class="trade-form-input" id="tradePrice" type="number" step="0.00001" readonly placeholder="Current market price">
               </div>
+              <div class="trade-form-group" id="tradeSLGroup">
+                <label class="trade-form-label">Stop Loss (SL)</label>
+                <input class="trade-form-input" id="tradeSL" type="number" step="0.00001" placeholder="Auto-calculated">
+              </div>
+              <div class="trade-form-group" id="tradeTPGroup">
+                <label class="trade-form-label">Take Profit (TP)</label>
+                <input class="trade-form-input" id="tradeTP" type="number" step="0.00001" placeholder="Auto-calculated">
+              </div>
+              <div class="trade-hint" style="font-size:0.75rem;color:#94a3b8;text-align:center;margin-top:0.5rem;">💡 Tip: Buy = price goes up, Sell = price goes down. Your profit/loss updates live.</div>
               <button class="trade-execute-btn" onclick="executeTrade()">Execute Trade</button>
             </div>
             <div class="trade-deposit-withdraw">
@@ -2536,6 +2562,10 @@ function closeExcelViewer() {
     let positions = [];
     let history = [];
     let currentPrices = {};
+    let chart = null;
+    let candleData = [];
+    let timeframe = '15m';
+    let selectedSymbol = 'EUR/USD';
 
     // Trade mode: opened in a new tab via ?trade
     if (new URLSearchParams(window.location.search).has('trade')) {
@@ -2544,6 +2574,7 @@ function closeExcelViewer() {
       initWatchlist();
       updateBalanceUI();
       startPriceTicker();
+      initChart();
       // Close button returns to portfolio tab
       document.querySelector('.trade-close').onclick = () => window.close();
     }
@@ -2565,8 +2596,15 @@ function closeExcelViewer() {
         const div = document.createElement('div');
         div.className = 'trade-watch-item';
         div.onclick = () => {
+          selectedSymbol = sym;
           document.getElementById('tradeSymbol').value = sym;
           document.getElementById('tradePrice').value = currentPrices[sym].toFixed(5);
+          document.getElementById('tradeSLGroup').style.display = 'none';
+          document.getElementById('tradeTPGroup').style.display = 'none';
+          loadChart(sym);
+          // highlight watchlist item
+          document.querySelectorAll('.trade-watch-item').forEach(el => el.style.background = '#0b1026');
+          div.style.background = '#1e293b';
         };
         div.innerHTML = `
           <span class="trade-watch-symbol">${sym}</span>
@@ -2577,11 +2615,111 @@ function closeExcelViewer() {
         `;
         container.appendChild(div);
       });
+      // select first symbol by default
+      document.querySelector('.trade-watch-item').style.background = '#1e293b';
+      loadChart(symbols[0]);
     }
 
     function getRandomPrice(sym) {
       const base = { 'EUR/USD': 1.0850, 'GBP/USD': 1.2650, 'XAU/USD': 2650.00, 'BTC/USD': 67500.00, 'AAPL': 185.50, 'TSLA': 245.30 }[sym] || 1.0;
       return base * (0.995 + Math.random() * 0.01);
+    }
+
+    function generateCandles(sym, count = 100) {
+      const base = { 'EUR/USD': 1.0850, 'GBP/USD': 1.2650, 'XAU/USD': 2650.00, 'BTC/USD': 67500.00, 'AAPL': 185.50, 'TSLA': 245.30 }[sym] || 1.0;
+      const candles = [];
+      let price = base;
+      const now = Date.now();
+      const intervalMs = timeframe === '1m' ? 60000 : timeframe === '5m' ? 300000 : timeframe === '15m' ? 900000 : 3600000;
+      for (let i = count - 1; i >= 0; i--) {
+        const open = price;
+        const change = (Math.random() - 0.5) * 0.004 * price;
+        const close = open + change;
+        const high = Math.max(open, close) + Math.random() * 0.002 * price;
+        const low = Math.min(open, close) - Math.random() * 0.002 * price;
+        candles.push({
+          x: now - i * intervalMs,
+          o: open,
+          h: high,
+          l: low,
+          c: close
+        });
+        price = close;
+      }
+      currentPrices[sym] = candles[candles.length - 1].c;
+      return candles;
+    }
+
+    function initChart() {
+      const ctx = document.getElementById('tradeChartCanvas').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'candlestick',
+        data: {
+          datasets: [{
+            label: 'Price',
+            data: [],
+            borderColor: '#ef4444',
+            downColor: '#ef4444',
+            upColor: '#22c55e',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          animation: { duration: 0 },
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'nearest', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(17, 24, 39, 0.9)',
+              titleColor: '#f8fafc',
+              bodyColor: '#e2e8f0',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 10,
+              callbacks: {
+                title: items => new Date(items[0].label).toLocaleString(),
+                label: ctx => `O: ${ctx.raw.o.toFixed(5)} | H: ${ctx.raw.h.toFixed(5)} | L: ${ctx.raw.l.toFixed(5)} | C: ${ctx.raw.c.toFixed(5)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: { unit: timeframe === '1m' ? 'minute' : timeframe === '5m' ? 'minute' : timeframe === '15m' ? '15 minutes' : 'hour' },
+              display: false,
+              grid: { display: false }
+            },
+            y: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8', font: { size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    function loadChart(sym) {
+      selectedSymbol = sym;
+      candleData = generateCandles(sym, 100);
+      chart.data.datasets[0].data = candleData;
+      chart.options.scales.x.time.unit = timeframe === '1m' ? 'minute' : timeframe === '5m' ? 'minute' : timeframe === '15m' ? '15 minutes' : 'hour';
+      chart.update();
+      document.getElementById('tradePrice').value = currentPrices[sym].toFixed(5);
+    }
+
+    function setTimeframe(tf) {
+      timeframe = tf;
+      document.querySelectorAll('.trade-chart-btn').forEach(btn => {
+        btn.style.background = '#1e293b';
+        btn.style.borderColor = '#334155';
+        btn.style.color = '#f8fafc';
+      });
+      event.target.style.background = '#334155';
+      event.target.style.borderColor = '#3b82f6';
+      event.target.style.color = '#3b82f6';
+      loadChart(selectedSymbol);
     }
 
     let tickerInterval;
@@ -2599,6 +2737,24 @@ function closeExcelViewer() {
             changeEl.style.color = changeColor;
           }
         });
+        // Add new candle every tick
+        if (chart && candleData.length > 0) {
+          const last = candleData[candleData.length - 1];
+          const newClose = last.c + (Math.random() - 0.5) * 0.002 * last.c;
+          const newCandle = {
+            x: last.x + (timeframe === '1m' ? 60000 : timeframe === '5m' ? 300000 : timeframe === '15m' ? 900000 : 3600000),
+            o: last.c,
+            h: Math.max(last.c, newClose) + Math.random() * 0.001 * last.c,
+            l: Math.min(last.c, newClose) - Math.random() * 0.001 * last.c,
+            c: newClose
+          };
+          candleData.push(newCandle);
+          candleData.shift();
+          currentPrices[selectedSymbol] = newClose;
+          chart.data.datasets[0].data = candleData;
+          chart.update('none');
+          document.getElementById(`price-${selectedSymbol}`).textContent = newClose.toFixed(5);
+        }
         updatePositionsUI();
       }, 1500);
     }
@@ -2645,7 +2801,10 @@ function closeExcelViewer() {
     function executeTrade() {
       const symbol = document.getElementById('tradeSymbol').value;
       const volume = parseFloat(document.getElementById('tradeVolume').value) || 0.01;
+      const orderType = document.getElementById('tradeOrderType').value;
       const price = currentPrices[symbol] || parseFloat(document.getElementById('tradePrice').value) || 0;
+      const sl = parseFloat(document.getElementById('tradeSL').value) || null;
+      const tp = parseFloat(document.getElementById('tradeTP').value) || null;
       const type = document.querySelector('.trade-order-tab.active').classList.contains('buy') ? 'buy' : 'sell';
       const cost = volume * price * 100;
 
@@ -2654,7 +2813,18 @@ function closeExcelViewer() {
         return;
       }
 
-      const position = { id: Date.now(), symbol, type, volume, price, pnl: 0, time: new Date().toLocaleTimeString() };
+      const position = {
+        id: Date.now(),
+        symbol,
+        type,
+        volume,
+        price,
+        orderType,
+        sl,
+        tp,
+        pnl: 0,
+        time: new Date().toLocaleTimeString()
+      };
       positions.push(position);
 
       if (type === 'buy') balance -= cost;
@@ -2677,7 +2847,7 @@ function closeExcelViewer() {
         div.className = 'trade-history-item';
         div.innerHTML = `
           <span class="symbol">${h.symbol}</span><br>
-          <span class="type-${h.type}">${h.type.toUpperCase()}</span>
+          <span class="type-${h.type}">${h.type.toUpperCase()} ${h.orderType}</span>
           <span class="amount">${h.volume} lots @ ${h.price.toFixed(5)}</span><br>
           <span>${h.time}</span>
         `;
