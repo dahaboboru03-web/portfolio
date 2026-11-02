@@ -1814,16 +1814,24 @@
     // Footer year
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // Contact form
+    // Contact form → WhatsApp
     document.getElementById('contactForm').addEventListener('submit', (e) => {
       e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const subject = document.getElementById('subject').value.trim();
+      const message = document.getElementById('message').value.trim();
+
+      const text = `*New Portfolio Message*\n\n*Name:* ${name}\n*Email:* ${email}\n*Subject:* ${subject}\n\n*Message:*\n${message}`;
+      const phone = '254792289553';
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+
       const btn = e.target.querySelector('button[type="submit"]');
       const originalText = btn.textContent;
-      btn.textContent = 'Message Sent!';
-      btn.style.background = '#10b981';
+      btn.textContent = 'Opening WhatsApp...';
       setTimeout(() => {
         btn.textContent = originalText;
-        btn.style.background = '';
         e.target.reset();
       }, 2000);
     });
