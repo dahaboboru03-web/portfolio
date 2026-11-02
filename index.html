@@ -1369,7 +1369,7 @@
       box-shadow: none !important;
       display: flex !important;
       flex-direction: column !important;
-      overflow: hidden !important;
+      overflow-y: auto !important;
     }
     body.trade-mode .trade-modal-overlay { display: none !important; }
 
@@ -1554,7 +1554,7 @@
       min-height: 350px;
       display: flex;
       flex-direction: column;
-      flex-shrink: 0;
+      flex: 1;
     }
 
     #tradeChartCanvas {
@@ -1576,12 +1576,10 @@
       flex-direction: column;
       flex: 1;
       min-height: 0;
-      overflow: auto;
     }
 
     .trade-trading-content {
       padding: 1rem;
-      overflow-y: auto;
     }
 
     .trade-order-form {
@@ -1849,7 +1847,6 @@
       display: flex;
       flex: 1;
       min-height: 0;
-      overflow: auto;
     }
     .trade-tab-panel > * {
       flex-shrink: 0;
@@ -2609,6 +2606,7 @@ function closeExcelViewer() {
   </div>
   </div>
   </div>
+</div>
   <div class="trade-notification" id="tradeNotify">
     <div class="trade-notify-title" id="tradeNotifyTitle">Trade Executed</div>
     <div class="trade-notify-body" id="tradeNotifyBody">Your order has been placed.</div>
