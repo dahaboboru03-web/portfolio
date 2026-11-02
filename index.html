@@ -1322,7 +1322,11 @@
       overflow: hidden;
       background: #0b1026;
     }
-    body.trade-mode > *:not(#tradeModal),
+    body.trade-mode #trade-modal-wrap {
+      display: block !important;
+    }
+
+    body.trade-mode > *:not(#tradeModal):not(#trade-modal-wrap),
     body.trade-mode header,
     body.trade-mode nav,
     body.trade-mode footer,
