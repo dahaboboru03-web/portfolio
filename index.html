@@ -1314,6 +1314,7 @@
       align-items: center;
       justify-content: center;
       padding: 1rem;
+      overflow-y: auto;
     }
 
     /* Full-screen trade mode (opened in new tab via ?trade) */
@@ -1339,9 +1340,10 @@
       align-items: stretch !important;
       justify-content: stretch !important;
       z-index: 3000 !important;
+      overflow: hidden !important;
     }
     body.trade-mode #tradeModal {
-      display: flex !important;
+      display: block !important;
       width: 100vw !important;
       height: 100vh !important;
       max-height: none !important;
@@ -1349,6 +1351,9 @@
       border: none !important;
       background: #0b1026 !important;
       box-shadow: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
     }
     body.trade-mode .trade-window {
       width: 100vw !important;
@@ -1358,6 +1363,9 @@
       border: none !important;
       background: #0b1026 !important;
       box-shadow: none !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
     }
     body.trade-mode .trade-modal-overlay { display: none !important; }
 
@@ -1395,6 +1403,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
     }
 
     .trade-brand {
@@ -1433,9 +1442,11 @@
 
     .trade-body {
       flex: 1;
-      overflow: hidden;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
+      gap: 0;
+      padding-bottom: 80px;
     }
 
     .trade-topbar {
@@ -1447,6 +1458,7 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 1rem;
+      flex-shrink: 0;
     }
 
     .trade-balance-card {
@@ -1455,6 +1467,7 @@
       padding: 1rem 1.5rem;
       color: #ffffff;
       min-width: 200px;
+      flex-shrink: 0;
     }
 
     .trade-balance-label {
@@ -1500,43 +1513,20 @@
       color: #ef4444;
     }
 
-    .trade-main {
-      flex: 1;
-      overflow: hidden;
-      display: grid;
-      grid-template-columns: 340px 1fr 320px;
-      grid-template-rows: 1fr 45px;
-      gap: 0;
-      min-height: 0;
-    }
-
-    .trade-watchlist,
-    .trade-chart-area,
-    .trade-trading-panel,
-    .trade-history {
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .trade-watchlist-items,
-    .trade-trading-content,
-    .trade-history-items {
-      overflow-y: auto;
-    }
-
-    .trade-history-items {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 0.5rem;
-      align-content: start;
-    }
-
     .trade-watchlist {
       background: #0f172a;
-      border-right: 1px solid #1e293b;
       border-bottom: 1px solid #1e293b;
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+
+    .trade-watchlist-items {
+      padding: 0.75rem;
       display: flex;
       flex-direction: column;
+      gap: 0.5rem;
+      overflow-y: auto;
+      max-height: 200px;
     }
 
     .trade-panel-header {
@@ -1549,60 +1539,18 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-    }
-
-    .trade-watchlist-items {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0.75rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .trade-watch-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.625rem 0.75rem;
-      background: #0b1026;
-      border: 1px solid #1e293b;
-      border-radius: 8px;
-      color: #e2e8f0;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-
-    .trade-watch-item:hover {
-      background: #1e293b;
-      border-color: #334155;
-    }
-
-    .trade-watch-symbol {
-      font-weight: 700;
-      color: #3b82f6;
-    }
-
-    .trade-watch-price {
-      font-weight: 600;
-      font-family: monospace;
-    }
-
-    .trade-watch-change {
-      font-weight: 600;
-      font-size: 0.8rem;
+      flex-shrink: 0;
     }
 
     .trade-chart-area {
       background: #0b1026;
-      border-right: 1px solid #1e293b;
       border-bottom: 1px solid #1e293b;
       position: relative;
       overflow: hidden;
-      min-height: 0;
+      min-height: 350px;
       display: flex;
       flex-direction: column;
+      flex-shrink: 0;
     }
 
     #tradeChartCanvas {
@@ -1614,15 +1562,12 @@
 
     .trade-trading-panel {
       background: #0f172a;
-      border-left: 1px solid #1e293b;
       border-bottom: 1px solid #1e293b;
-      display: flex;
-      flex-direction: column;
+      margin-bottom: 0;
+      flex-shrink: 0;
     }
 
     .trade-trading-content {
-      flex: 1;
-      overflow-y: auto;
       padding: 1rem;
     }
 
@@ -1777,21 +1722,19 @@
     }
 
     .trade-history {
-      grid-column: 1 / -1;
       background: #0f172a;
       border-top: 1px solid #1e293b;
-      border-left: 1px solid #1e293b;
-      display: flex;
-      flex-direction: column;
+      flex-shrink: 0;
     }
 
     .trade-history-items {
-      flex: 1;
-      overflow-y: auto;
       padding: 0.75rem;
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 0.5rem;
+      align-content: start;
+      max-height: 200px;
+      overflow-y: auto;
     }
 
     .trade-history-item {
@@ -1808,6 +1751,44 @@
     .trade-history-item .type-sell { color: #ef4444; }
     .trade-history-item .amount { font-family: monospace; font-weight: 600; }
 
+    /* Bottom Navigation */
+    .trade-bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #0f172a;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      justify-content: space-around;
+      padding: 0.75rem 0;
+      z-index: 3100;
+      flex-shrink: 0;
+    }
+
+    .trade-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.5rem;
+      cursor: pointer;
+      transition: var(--transition);
+      min-width: 60px;
+    }
+
+    .trade-nav-item.active {
+      color: #ef4444;
+    }
+
+    .trade-nav-item:hover {
+      color: #ef4444;
+    }
+
     .trade-notification {
       position: fixed;
       top: 1rem;
@@ -1818,7 +1799,7 @@
       padding: 1rem 1.25rem;
       color: #f8fafc;
       box-shadow: var(--shadow-lg);
-      z-index: 3100;
+      z-index: 3200;
       display: none;
       animation: tradeNotify 0.3s ease;
     }
@@ -1841,18 +1822,26 @@
       color: #9ca3af;
     }
 
-    /* Responsive */
-    @media (max-width: 900px) {
-      .trade-main {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 140px 1fr 45px;
-      }
-      .trade-watchlist { border-right: none; border-bottom: 1px solid #1e293b; }
-      .trade-chart-area { border-right: none; border-bottom: 1px solid #1e293b; }
-      .trade-trading-panel { border-left: none; }
-      .trade-history { grid-column: 1; border-left: none; }
+    /* Trade Tab Panels */
+    .trade-tab-panels {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
     }
-  </style>
+    .trade-tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 0;
+      min-height: 0;
+      width: 100%;
+    }
+    .trade-tab-panel.active {
+      display: flex;
+    }
+    .trade-tab-panel > * {
+      flex-shrink: 0;
+    }
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -2471,87 +2460,116 @@ function closeExcelViewer() {
           <button class="trade-quick-btn" onclick="refreshPrices()">Refresh</button>
         </div>
       </div>
-      <div class="trade-main">
-        <div class="trade-watchlist">
-          <div class="trade-panel-header">📊 Market Watch</div>
-          <div class="trade-watchlist-items" id="tradeWatchlist"></div>
-        </div>
-        <div class="trade-chart-area">
-          <div class="trade-chart-controls" style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:#111827;border-bottom:1px solid #1e293b;">
-            <div style="font-weight:700;color:#f8fafc;font-size:0.9rem;">EUR/USD — Live Chart</div>
-            <div style="display:flex;gap:0.5rem;">
-              <button class="trade-chart-btn" onclick="setTimeframe('1m')" style="padding:0.375rem 0.75rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-size:0.75rem;cursor:pointer;">1m</button>
-              <button class="trade-chart-btn" onclick="setTimeframe('5m')" style="padding:0.375rem 0.75rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-size:0.75rem;cursor:pointer;">5m</button>
-              <button class="trade-chart-btn" onclick="setTimeframe('15m')" style="padding:0.375rem 0.75rem;background:#334155;border:1px solid #3b82f6;border-radius:6px;color:#3b82f6;font-size:0.75rem;cursor:pointer;">15m</button>
-              <button class="trade-chart-btn" onclick="setTimeframe('1h')" style="padding:0.375rem 0.75rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-size:0.75rem;cursor:pointer;">1h</button>
-            </div>
+<div class="trade-main">
+  <div class="trade-tab-panels">
+    <!-- Home: Positions & Overview -->
+    <div class="trade-tab-panel active" id="tab-home">
+      <div class="trade-trading-panel">
+        <div class="trade-panel-header">💼 Positions</div>
+        <div class="trade-trading-content">
+          <div class="trade-order-form">
+            <div class="trade-order-title">Open Positions</div>
+            <div id="tradePositions" style="padding:1rem;color:#94a3b8;text-align:center;">No open positions yet. Go to Futures to place your first trade.</div>
           </div>
-          <canvas id="tradeChartCanvas" style="width:100%;height:100%;display:block;background:#0b1026;"></canvas>
-        </div>
-        <div class="trade-trading-panel">
-          <div class="trade-panel-header">💱 New Order</div>
-          <div class="trade-trading-content">
-            <div class="trade-order-form">
-              <div class="trade-order-title">Place Order</div>
-              <div class="trade-order-tabs">
-                <button class="trade-order-tab buy active" onclick="setOrderType('buy')">BUY</button>
-                <button class="trade-order-tab sell" onclick="setOrderType('sell')">SELL</button>
-              </div>
-              <div class="trade-form-group">
-                <label class="trade-form-label">Symbol</label>
-                <select class="trade-form-input" id="tradeSymbol">
-                  <option>EUR/USD</option>
-                  <option>GBP/USD</option>
-                  <option>XAU/USD</option>
-                  <option>BTC/USD</option>
-                  <option>AAPL</option>
-                  <option>TSLA</option>
-                </select>
-              </div>
-              <div class="trade-form-group">
-                <label class="trade-form-label">Order Type</label>
-                <select class="trade-form-input" id="tradeOrderType">
-                  <option value="market">Market Order (Instant)</option>
-                  <option value="limit">Limit Order (Set Price)</option>
-                </select>
-              </div>
-              <div class="trade-form-group">
-                <label class="trade-form-label">Volume (lots)</label>
-                <input class="trade-form-input" id="tradeVolume" type="number" value="0.1" min="0.01" step="0.01">
-              </div>
-              <div class="trade-form-group" id="tradePriceGroup">
-                <label class="trade-form-label">Price</label>
-                <input class="trade-form-input" id="tradePrice" type="number" step="0.00001" readonly placeholder="Current market price">
-              </div>
-              <div class="trade-form-group" id="tradeSLGroup">
-                <label class="trade-form-label">Stop Loss (SL)</label>
-                <input class="trade-form-input" id="tradeSL" type="number" step="0.00001" placeholder="Auto-calculated">
-              </div>
-              <div class="trade-form-group" id="tradeTPGroup">
-                <label class="trade-form-label">Take Profit (TP)</label>
-                <input class="trade-form-input" id="tradeTP" type="number" step="0.00001" placeholder="Auto-calculated">
-              </div>
-              <div class="trade-hint" style="font-size:0.75rem;color:#94a3b8;text-align:center;margin-top:0.5rem;">💡 Tip: Buy = price goes up, Sell = price goes down. Your profit/loss updates live.</div>
-              <button class="trade-execute-btn" onclick="executeTrade()">Execute Trade</button>
-            </div>
-            <div class="trade-deposit-withdraw">
-              <div class="trade-dw-title">Deposit / Withdraw</div>
-              <div class="trade-dw-row">
-                <input class="trade-dw-input" id="dwAmount" type="number" placeholder="Amount ($)">
-              </div>
-              <div class="trade-dw-row">
-                <button class="trade-dw-btn deposit" onclick="depositFunds()">Deposit</button>
-                <button class="trade-dw-btn withdraw" onclick="withdrawFunds()">Withdraw</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="trade-history">
-          <div class="trade-panel-header">📜 Trade History</div>
-          <div class="trade-history-items" id="tradeHistory"></div>
         </div>
       </div>
     </div>
+    <!-- Market: Watchlist + Chart -->
+    <div class="trade-tab-panel" id="tab-market">
+      <div class="trade-watchlist">
+        <div class="trade-panel-header">📊 Market Watch</div>
+        <div class="trade-watchlist-items" id="tradeWatchlist"></div>
+      </div>
+      <div class="trade-chart-area">
+        <div class="trade-chart-controls" style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:#111827;border-bottom:1px solid #1e293b;">
+          <div style="font-weight:700;color:#f8fafc;font-size:0.9rem;">EUR/USD — Live Chart</div>
+          <div style="display:flex;gap:0.5rem;">
+            <button class="trade-chart-btn" onclick="setTimeframe('1m')" style="padding:0.375rem 0.75rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-size:0.75rem;cursor:pointer;">1m</button>
+            <button class="trade-chart-btn" onclick="setTimeframe('5m')" style="padding:0.375rem 0.75rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-size:0.75rem;cursor:pointer;">5m</button>
+            <button class="trade-chart-btn" onclick="setTimeframe('15m')" style="padding:0.375rem 0.75rem;background:#334155;border:1px solid #3b82f6;border-radius:6px;color:#3b82f6;font-size:0.75rem;cursor:pointer;">15m</button>
+            <button class="trade-chart-btn" onclick="setTimeframe('1h')" style="padding:0.375rem 0.75rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-size:0.75rem;cursor:pointer;">1h</button>
+          </div>
+        </div>
+        <canvas id="tradeChartCanvas" style="width:100%;height:100%;display:block;background:#0b1026;"></canvas>
+      </div>
+    </div>
+    <!-- Futures: Order Form -->
+    <div class="trade-tab-panel" id="tab-futures">
+      <div class="trade-trading-panel">
+        <div class="trade-panel-header">💱 New Order</div>
+        <div class="trade-trading-content">
+          <div class="trade-order-form">
+            <div class="trade-order-title">Place Order</div>
+            <div class="trade-order-tabs">
+              <button class="trade-order-tab buy active" onclick="setOrderType('buy')">BUY</button>
+              <button class="trade-order-tab sell" onclick="setOrderType('sell')">SELL</button>
+            </div>
+            <div class="trade-form-group">
+              <label class="trade-form-label">Symbol</label>
+              <select class="trade-form-input" id="tradeSymbol">
+                <option>EUR/USD</option>
+                <option>GBP/USD</option>
+                <option>XAU/USD</option>
+                <option>BTC/USD</option>
+                <option>AAPL</option>
+                <option>TSLA</option>
+              </select>
+            </div>
+            <div class="trade-form-group">
+              <label class="trade-form-label">Order Type</label>
+              <select class="trade-form-input" id="tradeOrderType">
+                <option value="market">Market Order (Instant)</option>
+                <option value="limit">Limit Order (Set Price)</option>
+              </select>
+            </div>
+            <div class="trade-form-group">
+              <label class="trade-form-label">Volume (lots)</label>
+              <input class="trade-form-input" id="tradeVolume" type="number" value="0.1" min="0.01" step="0.01">
+            </div>
+            <div class="trade-form-group" id="tradePriceGroup">
+              <label class="trade-form-label">Price</label>
+              <input class="trade-form-input" id="tradePrice" type="number" step="0.00001" readonly placeholder="Current market price">
+            </div>
+            <div class="trade-form-group" id="tradeSLGroup">
+              <label class="trade-form-label">Stop Loss (SL)</label>
+              <input class="trade-form-input" id="tradeSL" type="number" step="0.00001" placeholder="Auto-calculated">
+            </div>
+            <div class="trade-form-group" id="tradeTPGroup">
+              <label class="trade-form-label">Take Profit (TP)</label>
+              <input class="trade-form-input" id="tradeTP" type="number" step="0.00001" placeholder="Auto-calculated">
+            </div>
+            <div class="trade-hint" style="font-size:0.75rem;color:#94a3b8;text-align:center;margin-top:0.5rem;">💡 Tip: Buy = price goes up, Sell = price goes down. Your profit/loss updates live.</div>
+            <button class="trade-execute-btn" onclick="executeTrade()">Execute Trade</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Wallet: Deposit/Withdraw + History -->
+    <div class="trade-tab-panel" id="tab-wallet">
+      <div class="trade-deposit-withdraw">
+        <div class="trade-dw-title">Deposit / Withdraw</div>
+        <div class="trade-dw-row">
+          <input class="trade-dw-input" id="dwAmount" type="number" placeholder="Amount ($)">
+        </div>
+        <div class="trade-dw-row">
+          <button class="trade-dw-btn deposit" onclick="depositFunds()">Deposit</button>
+          <button class="trade-dw-btn withdraw" onclick="withdrawFunds()">Withdraw</button>
+        </div>
+      </div>
+      <div class="trade-history">
+        <div class="trade-panel-header">📜 Trade History</div>
+        <div class="trade-history-items" id="tradeHistory"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  <div class="trade-bottom-nav">
+    <a class="trade-nav-item active" onclick="switchTab('home')" data-tab="home">🏠<span>Home</span></a>
+    <a class="trade-nav-item" onclick="switchTab('market')" data-tab="market">📊<span>Market</span></a>
+    <a class="trade-nav-item" onclick="switchTab('futures')" data-tab="futures">📈<span>Futures</span></a>
+    <a class="trade-nav-item" onclick="switchTab('wallet')" data-tab="wallet">💰<span>Wallet</span></a>
+  </div>
+</div>
   </div>
   </div>
   <div class="trade-notification" id="tradeNotify">
@@ -2589,6 +2607,17 @@ function closeExcelViewer() {
     function closeTrading() {
       document.getElementById('tradeModal').style.display = 'none';
       stopPriceTicker();
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.trade-tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.trade-nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      const navItem = document.querySelector('.trade-nav-item[data-tab="' + tab + '"]');
+      if (navItem) navItem.classList.add('active');
+      if (tab === 'market' && chart) {
+        chart.resize();
+      }
     }
 
     function initWatchlist() {
