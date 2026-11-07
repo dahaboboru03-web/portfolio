@@ -1557,12 +1557,14 @@
       flex: 1;
     }
 
-    #tradeChartCanvas {
-      width: 100% !important;
-      height: 100% !important;
-      display: block;
-      background: #0b1026;
-    }
+#tradeChartCanvas {
+  width: 100%;
+  height: 420px;
+  min-height: 350px;
+  flex: 1;
+  display: block;
+  background: #0b1026;
+}
 
     .trade-trading-panel {
       background: #0f172a;
@@ -1855,6 +1857,7 @@
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.2/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
 
@@ -2504,8 +2507,7 @@ function closeExcelViewer() {
             <button class="trade-chart-btn" onclick="setTimeframe('15m')" style="padding:0.375rem 0.75rem;background:#334155;border:1px solid #3b82f6;border-radius:6px;color:#3b82f6;font-size:0.75rem;cursor:pointer;">15m</button>
             <button class="trade-chart-btn" onclick="setTimeframe('1h')" style="padding:0.375rem 0.75rem;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-size:0.75rem;cursor:pointer;">1h</button>
           </div>
-        </div>
-        <canvas id="tradeChartCanvas" style="width:100%;height:100%;display:block;background:#0b1026;"></canvas>
+        </div><div id="tradeChartCanvas"></div>
       </div>
       <div class="trade-trading-panel" style="margin-top:0;">
         <div class="trade-panel-header">📈 Market Analysis</div>
@@ -2620,23 +2622,29 @@ function closeExcelViewer() {
     let balance = 10000.00;
     let positions = [];
     let history = [];
-    let currentPrices = {};
-    let chart = null;
-    let candleData = [];
+let currentPrices = {};
+let chart = null;
+let candleSeries = null;
+let chartResizeObserver = null;
+let candleData = [];
     let timeframe = '15m';
     let selectedSymbol = 'EUR/USD';
 
-    // Trade mode: opened in a new tab via ?trade
-    if (new URLSearchParams(window.location.search).has('trade')) {
-      document.body.classList.add('trade-mode');
-      document.getElementById('tradeModal').style.display = 'flex';
-      initWatchlist();
-      updateBalanceUI();
-      startPriceTicker();
-      initChart();
-      // Close button returns to portfolio tab
-      document.querySelector('.trade-close').onclick = () => window.close();
-    }
+// Trade mode: opened in a new tab via ?trade
+if (new URLSearchParams(window.location.search).has('trade')) {
+  document.body.classList.add('trade-mode');
+  document.getElementById('tradeModal').style.display = 'flex';
+
+  // Initialize the chart before loading market data
+  initChart();
+  initWatchlist();
+
+  updateBalanceUI();
+  updateMarketAnalysis();
+  startPriceTicker();
+
+  document.querySelector('.trade-close').onclick = () => window.close();
+}
 
     function openTrading() {
       window.open(window.location.pathname + '?trade', '_blank');
@@ -2653,9 +2661,9 @@ function closeExcelViewer() {
       document.getElementById('tab-' + tab).classList.add('active');
       const navItem = document.querySelector('.trade-nav-item[data-tab="' + tab + '"]');
       if (navItem) navItem.classList.add('active');
-      if (tab === 'market' && chart) {
-        chart.resize();
-      }
+if (tab === 'market' && chart) {
+  setTimeout(resizeTradeChart, 100);
+}
     }
 
     function initWatchlist() {
@@ -2720,90 +2728,132 @@ function closeExcelViewer() {
       return candles;
     }
 
-    function initChart() {
-      const canvas = document.getElementById('tradeChartCanvas');
-      const ctx = canvas.getContext('2d');
-      // Set explicit canvas size based on parent
-      const resizeObserver = new ResizeObserver(() => {
-        const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width * window.devicePixelRatio;
-        canvas.height = rect.height * window.devicePixelRatio;
-        if (chart) {
-          chart.resize();
-        }
-      });
-      resizeObserver.observe(canvas.parentElement);
 
-      chart = new Chart(ctx, {
-        type: 'candlestick',
-        data: {
-          datasets: [{
-            label: 'Price',
-            data: [],
-            borderColor: '#ef4444',
-            downColor: '#ef4444',
-            upColor: '#22c55e',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          animation: { duration: 0 },
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'nearest', intersect: false },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: 'rgba(17, 24, 39, 0.9)',
-              titleColor: '#f8fafc',
-              bodyColor: '#e2e8f0',
-              borderColor: '#334155',
-              borderWidth: 1,
-              padding: 10,
-              callbacks: {
-                title: items => new Date(items[0].label).toLocaleString(),
-                label: ctx => `O: ${ctx.raw.o.toFixed(5)} | H: ${ctx.raw.h.toFixed(5)} | L: ${ctx.raw.l.toFixed(5)} | C: ${ctx.raw.c.toFixed(5)}`
-              }
-            }
-          },
-          scales: {
-            x: {
-              type: 'time',
-              time: { unit: timeframe === '1m' ? 'minute' : timeframe === '5m' ? 'minute' : timeframe === '15m' ? '15 minutes' : 'hour' },
-              display: true,
-              grid: { display: false },
-              ticks: { color: '#94a3b8', font: { size: 10 } }
-            },
-            y: {
-              grid: { color: '#1e293b' },
-              ticks: { color: '#94a3b8', font: { size: 10 } }
-            }
-          }
-        }
-      });
-    }
+function initChart() {
+  const container = document.getElementById('tradeChartCanvas');
 
-    function loadChart(sym) {
-      selectedSymbol = sym;
-      candleData = generateCandles(sym, 100);
-      chart.data.datasets[0].data = candleData;
-      chart.options.scales.x.time.unit = timeframe === '1m' ? 'minute' : timeframe === '5m' ? 'minute' : timeframe === '15m' ? '15 minutes' : 'hour';
-      chart.update();
-      document.getElementById('tradePrice').value = currentPrices[sym].toFixed(5);
-    }
+  if (!container || !window.LightweightCharts) {
+    console.error('Trading chart library could not be loaded.');
+    return;
+  }
 
-    function setTimeframe(tf) {
-      timeframe = tf;
-      document.querySelectorAll('.trade-chart-btn').forEach(btn => {
-        btn.style.background = '#1e293b';
-        btn.style.borderColor = '#334155';
-        btn.style.color = '#f8fafc';
-      });
-      event.target.style.background = '#334155';
-      event.target.style.borderColor = '#3b82f6';
-      event.target.style.color = '#3b82f6';
-      loadChart(selectedSymbol);
+  chart = LightweightCharts.createChart(container, {
+    width: container.clientWidth,
+    height: container.clientHeight,
+
+    layout: {
+      background: {
+        type: 'solid',
+        color: '#0b1026'
+      },
+      textColor: '#94a3b8'
+    },
+
+    grid: {
+      vertLines: { color: '#172033' },
+      horzLines: { color: '#172033' }
+    },
+
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal
+    },
+
+    rightPriceScale: {
+      borderColor: '#334155'
+    },
+
+    timeScale: {
+      borderColor: '#334155',
+      timeVisible: true,
+      secondsVisible: false,
+      rightOffset: 8,
+      barSpacing: 9
     }
+  });
+
+  candleSeries = chart.addCandlestickSeries({
+    upColor: '#22c55e',
+    downColor: '#ef4444',
+    borderUpColor: '#22c55e',
+    borderDownColor: '#ef4444',
+    wickUpColor: '#22c55e',
+    wickDownColor: '#ef4444'
+  });
+
+  if (chartResizeObserver) {
+    chartResizeObserver.disconnect();
+  }
+
+  chartResizeObserver = new ResizeObserver(() => {
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    if (width > 0 && height > 0 && chart) {
+      chart.applyOptions({ width, height });
+    }
+  });
+
+  chartResizeObserver.observe(container);
+}
+
+function convertCandles(data) {
+  return data.map(candle => ({
+    time: Math.floor(candle.x / 1000),
+    open: candle.o,
+    high: candle.h,
+    low: candle.l,
+    close: candle.c
+  }));
+}
+
+function resizeTradeChart() {
+  const container = document.getElementById('tradeChartCanvas');
+
+  if (chart && container) {
+    chart.applyOptions({
+      width: container.clientWidth,
+      height: container.clientHeight
+    });
+  }
+}
+
+function loadChart(sym) {
+  selectedSymbol = sym;
+  candleData = generateCandles(sym, 100);
+
+  if (candleSeries) {
+    candleSeries.setData(convertCandles(candleData));
+    chart.timeScale().fitContent();
+  }
+
+  const priceInput = document.getElementById('tradePrice');
+
+  if (priceInput) {
+    priceInput.value = currentPrices[sym].toFixed(5);
+  }
+
+  const chartTitle = document.querySelector(
+    '.trade-chart-controls > div:first-child'
+  );
+
+  if (chartTitle) {
+    chartTitle.textContent = sym + ' — Simulated Chart';
+  }
+}
+
+function setTimeframe(tf) {
+  timeframe = tf;
+
+  document.querySelectorAll('.trade-chart-btn').forEach(btn => {
+    const active = btn.textContent.trim() === tf;
+
+    btn.style.background = active ? '#334155' : '#1e293b';
+    btn.style.borderColor = active ? '#3b82f6' : '#334155';
+    btn.style.color = active ? '#3b82f6' : '#f8fafc';
+  });
+
+  loadChart(selectedSymbol);
+}
 
     let tickerInterval;
     function startPriceTicker() {
@@ -2821,24 +2871,38 @@ function closeExcelViewer() {
           }
         });
         // Add new candle every tick
-        if (chart && candleData.length > 0) {
-          const last = candleData[candleData.length - 1];
-          const newClose = last.c + (Math.random() - 0.5) * 0.002 * last.c;
-          const newCandle = {
-            x: last.x + (timeframe === '1m' ? 60000 : timeframe === '5m' ? 300000 : timeframe === '15m' ? 900000 : 3600000),
-            o: last.c,
-            h: Math.max(last.c, newClose) + Math.random() * 0.001 * last.c,
-            l: Math.min(last.c, newClose) - Math.random() * 0.001 * last.c,
-            c: newClose
-          };
-          candleData.push(newCandle);
-          candleData.shift();
-          currentPrices[selectedSymbol] = newClose;
-          chart.data.datasets[0].data = candleData;
-          chart.update('none');
-          document.getElementById(`price-${selectedSymbol}`).textContent = newClose.toFixed(5);
-        }
-        updatePositionsUI();
+if (candleSeries && candleData.length > 0) {
+  const last = candleData[candleData.length - 1];
+
+  const newClose =
+    last.c + (Math.random() - 0.5) * 0.002 * last.c;
+
+  const newCandle = {
+    x: last.x + (
+      timeframe === '1m' ? 60000 :
+      timeframe === '5m' ? 300000 :
+      timeframe === '15m' ? 900000 : 3600000
+    ),
+    o: last.c,
+    h: Math.max(last.c, newClose) + Math.random() * 0.001 * last.c,
+    l: Math.min(last.c, newClose) - Math.random() * 0.001 * last.c,
+    c: newClose
+  };
+
+  candleData.push(newCandle);
+
+  if (candleData.length > 100) {
+    candleData.shift();
+  }
+
+  currentPrices[selectedSymbol] = newClose;
+
+  candleSeries.setData(convertCandles(candleData));
+
+  document.getElementById(
+    `price-${selectedSymbol}`
+  ).textContent = newClose.toFixed(5);
+}        updatePositionsUI();
         updateMarketAnalysis();
       }, 1500);
     }
