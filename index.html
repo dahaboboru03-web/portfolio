@@ -1781,6 +1781,24 @@ body.trade-mode .trade-window {
   z-index: 1000;
   flex-shrink: 0;
 }
+/* Keep trading navigation visible on phones */
+body.trade-mode .trade-bottom-nav {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  justify-content: space-around !important;
+  background: #0f172a !important;
+  z-index: 99999 !important;
+  padding: 8px 0 !important;
+  padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+}
+
+body.trade-mode .trade-main {
+  padding-bottom: 75px !important;
+}
 
     .trade-nav-item {
       display: flex;
@@ -2651,11 +2669,18 @@ if (new URLSearchParams(window.location.search).has('trade')) {
   document.getElementById('tradeModal').style.display = 'flex';
 
   // Initialize the chart before loading market data
+// Initialize trading platform
 initWatchlist();
 updateBalanceUI();
 renderWalletHistory();
 startPriceTicker();
+
+// Create chart first, then load its data
 initChart();
+loadChart(selectedSymbol);
+
+// Resize chart when the market tab is opened
+setTimeout(resizeTradeChart, 300);
 
   document.querySelector('.trade-close').onclick = () => window.close();
 }
