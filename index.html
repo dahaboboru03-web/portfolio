@@ -2631,7 +2631,9 @@ function closeExcelViewer() {
   <script>
     // Trading Platform Logic
     const symbols = ['EUR/USD', 'GBP/USD', 'XAU/USD', 'BTC/USD', 'AAPL', 'TSLA'];
-let balance = Number(localStorage.getItem('tradingBalance')) || 10000.00;
+let balance = localStorage.getItem('tradingBalance') !== null
+  ? Number(localStorage.getItem('tradingBalance'))
+  : 10000.00;
     let positions = [];
     let history = [];
     let walletHistory = JSON.parse(localStorage.getItem('walletHistory') || '[]');
@@ -2929,57 +2931,68 @@ if (candleSeries && candleData.length > 0) {
       showNotify('Prices Refreshed', 'All market prices updated.');
     }
 
-    function updateBalanceUI() {
-      function saveWalletData() {
-  localStorage.setItem('tradingBalance', balance.toString());
-  localStorage.setItem('walletHistory', JSON.stringify(walletHistory));
-        saveWalletData();
+function saveWalletData() {
+  try {
+    localStorage.setItem('tradingBalance', balance.toString());
+    localStorage.setItem('walletHistory', JSON.stringify(walletHistory));
+  } catch (error) {
+    console.error('Wallet saving error:', error);
+  }
 }
 
 function renderWalletHistory() {
   const container = document.getElementById('walletHistoryItems');
   if (!container) return;
 
+  container.innerHTML = '';
+
   if (walletHistory.length === 0) {
-    container.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:1rem;">No deposits or withdrawals yet.</div>';
+    container.textContent = 'No deposits or withdrawals yet.';
     return;
   }
-
-  container.innerHTML = '';
 
   walletHistory.forEach(item => {
     const div = document.createElement('div');
     div.className = 'trade-history-item';
 
-    const isDeposit = item.type === 'Deposit';
+    const deposit = item.type === 'Deposit';
 
     div.innerHTML = `
       <div style="display:flex;justify-content:space-between;gap:10px;">
-        <strong style="color:${isDeposit ? '#22c55e' : '#ef4444'};">
+        <strong style="color:${deposit ? '#22c55e' : '#ef4444'};">
           ${item.type}
         </strong>
-        <strong style="color:${isDeposit ? '#22c55e' : '#ef4444'};">
-          ${isDeposit ? '+' : '-'}$${item.amount.toFixed(2)}
+        <strong style="color:${deposit ? '#22c55e' : '#ef4444'};">
+          ${deposit ? '+' : '-'}$${Number(item.amount).toFixed(2)}
         </strong>
       </div>
       <div style="font-size:0.75rem;color:#94a3b8;margin-top:5px;">
         ${item.time}
       </div>
       <div style="font-size:0.75rem;color:#94a3b8;">
-        Balance after transaction: $${item.balance.toFixed(2)}
+        Balance after transaction: $${Number(item.balance).toFixed(2)}
       </div>
     `;
 
     container.appendChild(div);
   });
 }
-      document.getElementById('tradeBalance').textContent = `$${balance.toFixed(2)}`;
-      const pnl = positions.reduce((sum, p) => sum + p.pnl, 0);
-      const pct = ((pnl / balance) * 100).toFixed(2);
-      document.getElementById('tradeChange').textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnl >= 0 ? '+' : ''}${pct}%) ${pnl >= 0 ? '▲' : '▼'}`;
-      document.getElementById('tradeChange').style.color = pnl >= 0 ? '#22c55e' : '#ef4444';
-    }
 
+function updateBalanceUI() {
+  document.getElementById('tradeBalance').textContent =
+    `$${balance.toFixed(2)}`;
+
+  const pnl = positions.reduce((sum, p) => sum + p.pnl, 0);
+  const pct = balance > 0 ? ((pnl / balance) * 100).toFixed(2) : '0.00';
+
+  document.getElementById('tradeChange').textContent =
+    `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnl >= 0 ? '+' : ''}${pct}%) ${pnl >= 0 ? '▲' : '▼'}`;
+
+  document.getElementById('tradeChange').style.color =
+    pnl >= 0 ? '#22c55e' : '#ef4444';
+
+  saveWalletData();
+}
     function updatePositionsUI() {
       positions.forEach(p => {
         const current = currentPrices[p.symbol] || p.price;
