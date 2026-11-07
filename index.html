@@ -3288,35 +3288,38 @@ function depositFunds() {
   showNotify('Deposit Successful', `+$${amount.toFixed(2)} credited to account.`);
 }
 function withdrawFunds() {
-  const input = document.getElementById('dwAmount');
-  const amount = parseFloat(input.value) || 0;
+    const input = document.getElementById('dwAmount');
+    const amount = parseFloat(input.value) || 0;
 
-  if (amount <= 0) {
-    showNotify('Invalid Amount', 'Enter a positive amount.');
-    return;
-  }
+    if (amount <= 0) {
+        showNotify('Invalid Amount', 'Enter a positive amount.');
+        return;
+    }
 
-  if (amount > balance) {
-    showNotify('Insufficient Funds', 'Cannot withdraw more than balance.');
-    return;
-  }
+    if (amount > balance) {
+        showNotify('Insufficient Funds', 'Cannot withdraw more than balance.');
+        return;
+    }
 
-  balance -= amount;
+    balance -= amount;
 
-  walletHistory.unshift({
-    type: 'Withdrawal',
-    amount: amount,
-    balance: balance,
-    time: new Date().toLocaleString()
-  });
+    walletHistory.unshift({
+        type: 'Withdrawal',
+        amount: amount,
+        balance: balance,
+        time: new Date().toLocaleString()
+    });
 
-  if (walletHistory.length > 100) walletHistory.pop();
+    if (walletHistory.length > 100) walletHistory.pop();
 
-  saveWalletData();
-  input.value = '';
-  updateBalanceUI();
-  renderWalletHistory();
-  showWithdrawalSuccess(amount);
+    saveWalletData();
+    input.value = '';
+    updateBalanceUI();
+
+    // Display the success popup
+    showWithdrawalSuccess(amount);
+
+    renderWalletHistory();
 }
     function tradeAction(action) {
       document.getElementById('tradeSymbol').value = 'EUR/USD';
