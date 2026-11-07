@@ -2601,10 +2601,15 @@ function closeExcelViewer() {
           <button class="trade-dw-btn withdraw" onclick="withdrawFunds()">Withdraw</button>
         </div>
       </div>
-      <div class="trade-history">
-        <div class="trade-panel-header">📜 Trade History</div>
-        <div class="trade-history-items" id="tradeHistory"></div>
-      </div>
+<div class="trade-history">
+  <div class="trade-panel-header">💳 Deposit & Withdrawal History</div>
+  <div class="trade-history-items" id="walletHistoryItems"></div>
+</div>
+
+<div class="trade-history">
+  <div class="trade-panel-header">📜 Trade History</div>
+  <div class="trade-history-items" id="tradeHistory"></div>
+</div>
     </div>
   </div>
 </div>
@@ -2626,9 +2631,10 @@ function closeExcelViewer() {
   <script>
     // Trading Platform Logic
     const symbols = ['EUR/USD', 'GBP/USD', 'XAU/USD', 'BTC/USD', 'AAPL', 'TSLA'];
-    let balance = 10000.00;
+let balance = Number(localStorage.getItem('tradingBalance')) || 10000.00;
     let positions = [];
     let history = [];
+    let walletHistory = JSON.parse(localStorage.getItem('walletHistory') || '[]');
 let currentPrices = {};
 let chart = null;
 let candleSeries = null;
@@ -2643,12 +2649,11 @@ if (new URLSearchParams(window.location.search).has('trade')) {
   document.getElementById('tradeModal').style.display = 'flex';
 
   // Initialize the chart before loading market data
-  initChart();
-  initWatchlist();
-
-  updateBalanceUI();
-  updateMarketAnalysis();
-  startPriceTicker();
+initWatchlist();
+updateBalanceUI();
+renderWalletHistory();
+startPriceTicker();
+initChart();
 
   document.querySelector('.trade-close').onclick = () => window.close();
 }
@@ -2925,6 +2930,49 @@ if (candleSeries && candleData.length > 0) {
     }
 
     function updateBalanceUI() {
+      function saveWalletData() {
+  localStorage.setItem('tradingBalance', balance.toString());
+  localStorage.setItem('walletHistory', JSON.stringify(walletHistory));
+        saveWalletData();
+}
+
+function renderWalletHistory() {
+  const container = document.getElementById('walletHistoryItems');
+  if (!container) return;
+
+  if (walletHistory.length === 0) {
+    container.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:1rem;">No deposits or withdrawals yet.</div>';
+    return;
+  }
+
+  container.innerHTML = '';
+
+  walletHistory.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'trade-history-item';
+
+    const isDeposit = item.type === 'Deposit';
+
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:10px;">
+        <strong style="color:${isDeposit ? '#22c55e' : '#ef4444'};">
+          ${item.type}
+        </strong>
+        <strong style="color:${isDeposit ? '#22c55e' : '#ef4444'};">
+          ${isDeposit ? '+' : '-'}$${item.amount.toFixed(2)}
+        </strong>
+      </div>
+      <div style="font-size:0.75rem;color:#94a3b8;margin-top:5px;">
+        ${item.time}
+      </div>
+      <div style="font-size:0.75rem;color:#94a3b8;">
+        Balance after transaction: $${item.balance.toFixed(2)}
+      </div>
+    `;
+
+    container.appendChild(div);
+  });
+}
       document.getElementById('tradeBalance').textContent = `$${balance.toFixed(2)}`;
       const pnl = positions.reduce((sum, p) => sum + p.pnl, 0);
       const pct = ((pnl / balance) * 100).toFixed(2);
@@ -3080,27 +3128,65 @@ if (candleSeries && candleData.length > 0) {
       if (elSignal) { elSignal.textContent = signal; elSignal.style.color = signalColor; }
     }
 
-    function depositFunds() {
-      const input = document.getElementById('dwAmount');
-      const amount = parseFloat(input.value) || 0;
-      if (amount <= 0) { showNotify('Invalid Amount', 'Enter a positive amount.'); return; }
-      balance += amount;
-      input.value = '';
-      updateBalanceUI();
-      showNotify('Deposit Successful', `+$${amount.toFixed(2)} credited to account.`);
-    }
+function depositFunds() {
+  const input = document.getElementById('dwAmount');
+  const amount = parseFloat(input.value) || 0;
 
-    function withdrawFunds() {
-      const input = document.getElementById('dwAmount');
-      const amount = parseFloat(input.value) || 0;
-      if (amount <= 0) { showNotify('Invalid Amount', 'Enter a positive amount.'); return; }
-      if (amount > balance) { showNotify('Insufficient Funds', 'Cannot withdraw more than balance.'); return; }
-      balance -= amount;
-      input.value = '';
-      updateBalanceUI();
-      showNotify('Withdrawal Successful', `-$${amount.toFixed(2)} withdrawn from account.`);
-    }
+  if (amount <= 0) {
+    showNotify('Invalid Amount', 'Enter a positive amount.');
+    return;
+  }
 
+  balance += amount;
+
+  walletHistory.unshift({
+    type: 'Deposit',
+    amount: amount,
+    balance: balance,
+    time: new Date().toLocaleString()
+  });
+
+  if (walletHistory.length > 100) walletHistory.pop();
+
+  saveWalletData();
+  input.value = '';
+  updateBalanceUI();
+  renderWalletHistory();
+
+  showNotify('Deposit Successful', `+$${amount.toFixed(2)} credited to account.`);
+}
+function withdrawFunds() {
+  const input = document.getElementById('dwAmount');
+  const amount = parseFloat(input.value) || 0;
+
+  if (amount <= 0) {
+    showNotify('Invalid Amount', 'Enter a positive amount.');
+    return;
+  }
+
+  if (amount > balance) {
+    showNotify('Insufficient Funds', 'Cannot withdraw more than balance.');
+    return;
+  }
+
+  balance -= amount;
+
+  walletHistory.unshift({
+    type: 'Withdrawal',
+    amount: amount,
+    balance: balance,
+    time: new Date().toLocaleString()
+  });
+
+  if (walletHistory.length > 100) walletHistory.pop();
+
+  saveWalletData();
+  input.value = '';
+  updateBalanceUI();
+  renderWalletHistory();
+
+  showNotify('Withdrawal Successful', `-$${amount.toFixed(2)} withdrawn from account.`);
+}
     function tradeAction(action) {
       document.getElementById('tradeSymbol').value = 'EUR/USD';
       document.getElementById('tradePrice').value = currentPrices['EUR/USD']?.toFixed(5) || '1.08500';
